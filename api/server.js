@@ -16,26 +16,28 @@ const app = express();
 app.post("/stripe", express.raw({ type: "application/json" }), stripeWebHooks);
 app.post("/clerk", express.raw({ type: "application/json" }), clerkWebHooks);
 
-// Middlewares
+// CORS configuration
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? ["https://lms-client-final.vercel.app/"] 
-        : ["http://localhost:5173"],
+    origin: process.env.NODE_ENV === "production"
+      ? ["https://lms-client-final.vercel.app"]  // No trailing slash
+      : ["http://localhost:5173"],  // Ensure correct local dev URL
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Ensure methods are allowed
+    allowedHeaders: ['Content-Type', 'Authorization'],   // Ensure headers are allowed
   })
 );
 
+// Middleware setup
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(clerkMiddleware());
+app.use(clerkMiddleware());  // Clerk authentication middleware
 
 // Initialize services on startup
 const initializeServices = async () => {
   try {
-    await dbConnect();
-    connectCloudinary();
+    await dbConnect();         // Connect to the database
+    connectCloudinary();       // Connect to Cloudinary
     console.log("✅ Services initialized successfully");
   } catch (error) {
     console.error("❌ Service initialization failed:", error);
@@ -65,7 +67,7 @@ app.use((req, res) => {
   });
 });
 
-// Error handling
+// Global error handling
 app.use((error, req, res, next) => {
   console.error("Global error handler:", error.stack);
   res.status(500).json({
@@ -74,7 +76,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-// --- Start server for Railway ---
+// Start server for Railway
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
